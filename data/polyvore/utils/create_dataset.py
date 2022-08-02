@@ -2,22 +2,20 @@
 Create the dataset files for Polyvore from the raw data.
 """
 
-import argparse
-import json
 import os
+import json
+import scipy as sp
+from scipy.sparse import lil_matrix, save_npz, csr_matrix
+import argparse
 import pickle as pkl
-
 import numpy as np
-from get_compatibility import get_compats
 from get_questions import get_questions
-from resample_compat import resample_compatibility
+from get_compatibility import get_compats
 from resample_fitb import resample_fitb
-from scipy.sparse import csr_matrix, lil_matrix, save_npz
+from resample_compat import resample_compatibility
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--phase',
-                    default='train',
-                    choices=['train', 'valid', 'test'])
+parser.add_argument('--phase', default='train', choices=['train', 'valid', 'test'])
 args = parser.parse_args()
 
 save_path = '../dataset/'
@@ -38,8 +36,7 @@ if os.path.exists(feat_pkl):
     with open(feat_pkl, 'rb') as handle:
         feat_dict = pkl.load(handle)
 else:
-    raise FileNotFound(
-        'The extracted features file {} does not exist'.format(feat_pkl))
+    raise FileNotFound('The extracted features file {} does not exist'.format(feat_pkl))
 
 relations = {}
 id2idx = {}
@@ -62,7 +59,7 @@ for outfit in json_data:
     for id in outfit_ids:
         if id not in relations:
             relations[id] = set()
-            img_feats = feat_dict[str(id)]
+            img_feats = feat_dict[str(id)] 
             # TODO, REMOVE
             #cat_vector = cat_vectors[cat_dict[id]]
             #feats = np.concatenate((cat_vector, img_feats))
@@ -94,7 +91,7 @@ for rel in relations:
         to_idx = id2idx[related]
 
         sp_adj[from_idx, to_idx] = 1
-        sp_adj[to_idx, from_idx] = 1  # because it is symmetric
+        sp_adj[to_idx, from_idx] = 1 # because it is symmetric
 
 print('Done!')
 
@@ -110,7 +107,6 @@ save_feat_file = save_path + 'features_{}'.format(args.phase)
 sp_feat = csr_matrix(features_mat)
 save_npz(save_feat_file, sp_feat)
 
-
 def create_test(resampled=False):
     if resampled:
         resample_fitb()
@@ -118,35 +114,32 @@ def create_test(resampled=False):
 
     # build the question indexes
     questions = get_questions(resampled=resampled)
-    for i in range(len(questions)):  # for each question
+    for i in range(len(questions)): # for each question
         assert len(questions[i]) == 4
-        for j in range(2):  # questions list (j==0) or answers list (j==1)
-            for z in range(len(questions[i][j])):  # for each id in the list
+        for j in range(2): # questions list (j==0) or answers list (j==1)
+            for z in range(len(questions[i][j])): # for each id in the list
                 id = int(questions[i][j][z])
-                questions[i][j][z] = id2idx[id]  # map the id to the node index
+                questions[i][j][z] = id2idx[id] # map the id to the node index
 
     questions_file = save_path + 'questions_{}.json'.format(args.phase)
     if resampled:
-        questions_file = questions_file.replace('questions',
-                                                'questions_RESAMPLED')
+        questions_file = questions_file.replace('questions', 'questions_RESAMPLED')
     with open(questions_file, 'w') as f:
         json.dump(questions, f)
 
     # outfit compat task
     outfits = get_compats(resampled=resampled)
-    for i in range(len(outfits)):  # for each outfit
+    for i in range(len(outfits)): # for each outfit
         for j in range(len(outfits[i][0])):
             id = int(outfits[i][0][j])
             outfits[i][0][j] = id2idx[id]
 
     compat_file = save_path + 'compatibility_{}.json'.format(args.phase)
     if resampled:
-        compat_file = compat_file.replace('compatibility',
-                                          'compatibility_RESAMPLED')
+        compat_file = compat_file.replace('compatibility', 'compatibility_RESAMPLED')
     print(compat_file)
     with open(compat_file, 'w') as f:
         json.dump(outfits, f)
-
 
 if args.phase == 'test':
     create_test(False)

@@ -3,9 +3,9 @@ Resample the FITB choices so that they share category with the correct item.
 """
 
 import json
-import random
+import numpy as np
 from random import shuffle
-
+import random
 
 def resample_fitb():
     dataset_path = '../jsons/'
@@ -55,15 +55,13 @@ def resample_fitb():
                 # correct choice
                 assert a_id.split('_')[0] == outfit_id
                 catid = map_cat[a_id]
-                choices = set([
-                    out_id for out_id in map_cat if map_cat[out_id] == catid
-                ]) - set([a_id]) - set(q)
+                choices = set([out_id for out_id in map_cat if map_cat[out_id] == catid]) - set([a_id]) - set(q)
                 choices = list(choices)
                 shuffle(choices)
-            else:  # resample item that has the category 'catid' (which is the same as the missing item))
+            else: # resample item that has the category 'catid' (which is the same as the missing item))
                 # it could happen that there aren't enough items of that category
-                if i - 1 < len(choices):
-                    a_id = choices[i - 1]
+                if i-1 < len(choices):
+                    a_id = choices[i-1]
                 else:
                     # not enough possible choices with the same cat
                     a_id = random.choice(list(map_cat.keys()))

@@ -1,5 +1,5 @@
 import json
-
+import numpy as np
 
 def get_questions(resampled=False):
     dataset_path = '../jsons/'
@@ -48,9 +48,8 @@ def get_questions(resampled=False):
                 assert a_id.split('_')[0] == outfit_id
             else:
                 if a_id.split('_')[0] == outfit_id:
-                    pass  # this is true for a few edge queries
-            pos = int(a_id.split('_')
-                      [-1])  # get the posittion of this item within the outfit
+                    pass # this is true for a few edge queries
+            pos = int(a_id.split('_')[-1]) # get the posittion of this item within the outfit
             a_id = map_ids[a_id]
             a.append(a_id)
             positions.append(pos)
@@ -70,10 +69,8 @@ def get_questions(resampled=False):
     #    - desired position
     return save_data
 
-
 def main():
     questions = get_questions()
-
 
 if __name__ == '__main__':
     main()
