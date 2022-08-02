@@ -1,19 +1,11 @@
 import json
-import time
-import tensorflow as tf
-
 import numpy as np
+import time
 import scipy.sparse as sp
+from scipy.sparse import csr_matrix
 
-
-def construct_feed_dict(placeholders,
-                        node_features,
-                        support,
-                        labels,
-                        r_indices,
-                        c_indices,
-                        dropout,
-                        is_train=True):
+def construct_feed_dict(placeholders, node_features, support, labels, r_indices, c_indices,
+                        dropout, is_train=True):
     """
     Create feed dictionary.
     """
@@ -22,28 +14,25 @@ def construct_feed_dict(placeholders,
         support = [sparse_to_tuple(sup) for sup in support]
 
     feed_dict = dict()
-    feed_dict.update({'node_features': node_features})
-    feed_dict.update({'support': support})
+    feed_dict.update({placeholders['node_features']: node_features})
+    feed_dict.update({placeholders['support'][i]: support[i] for i in range(len(support))})
 
-    feed_dict.update({'labels': labels})
-    feed_dict.update({'row_indices': r_indices})
-    feed_dict.update({'col_indices': c_indices})
+    feed_dict.update({placeholders['labels']: labels})
+    feed_dict.update({placeholders['row_indices']: r_indices})
+    feed_dict.update({placeholders['col_indices']: c_indices})
 
-    feed_dict.update({'dropout': dropout})
-    feed_dict.update({'is_train': is_train})
-    feed_dict.update({'weight_decay': 0.0})
+    feed_dict.update({placeholders['dropout']: dropout})
+    feed_dict.update({placeholders['is_train']: is_train})
 
     return feed_dict
 
-
 def support_dropout(sup, do, edge_drop=False):
+    before = time.time()
     sup = sp.tril(sup)
     assert do > 0.0 and do < 1.0
     n_nodes = sup.shape[0]
     # nodes that I want to isolate
-    isolate = np.random.choice(range(n_nodes),
-                               int(n_nodes * do),
-                               replace=False)
+    isolate = np.random.choice(range(n_nodes), int(n_nodes*do), replace=False)
     nnz_rows, nnz_cols = sup.nonzero()
 
     # mask the nodes that have been selected
@@ -63,34 +52,28 @@ def support_dropout(sup, do, edge_drop=False):
     sup = sup + sup.transpose()
     return sup
 
-
 def write_log(data, logfile):
     with open(logfile, 'w') as outfile:
         json.dump(data, outfile)
-
 
 def get_degree_supports(adj, k, adj_self_con=False, verbose=True):
     if verbose:
         print('Computing adj matrices up to {}th degree'.format(k))
     supports = [sp.identity(adj.shape[0])]
-    if k == 0:  # return Identity matrix (no message passing)
+    if k == 0: # return Identity matrix (no message passing)
         return supports
     assert k > 0
-    supports = [
-        sp.identity(adj.shape[0]),
-        adj.astype(np.float64) + adj_self_con * sp.identity(adj.shape[0])
-    ]
+    supports = [sp.identity(adj.shape[0]), adj.astype(np.float64) + adj_self_con*sp.identity(adj.shape[0])]
 
     prev_power = adj
-    for i in range(k - 1):
-        power = prev_power.dot(adj)
-        new_adj = ((power) == 1).astype(np.float64)
+    for i in range(k-1):
+        pow = prev_power.dot(adj)
+        new_adj = ((pow) == 1).astype(np.float64)
         new_adj.setdiag(0)
         new_adj.eliminate_zeros()
         supports.append(new_adj)
-        prev_power = power
+        prev_power = pow
     return supports
-
 
 def normalize_nonsym_adj(adj):
     degree = np.asarray(adj.sum(1)).flatten()
@@ -107,7 +90,6 @@ def normalize_nonsym_adj(adj):
 
     return adj_norm
 
-
 def sparse_to_tuple(sparse_mx):
     """ change of format for sparse matrix. This format is used
     for the feed_dict where sparse matrices need to be linked to placeholders
@@ -120,10 +102,8 @@ def sparse_to_tuple(sparse_mx):
     shape = sparse_mx.shape
     return coords, values, shape
 
-
 class Graph(object):
     """docstring for Graph."""
-
     def __init__(self, adj):
         super(Graph, self).__init__()
         self.adj = adj

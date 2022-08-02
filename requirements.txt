@@ -1,0 +1,5 @@
+gdown
+tensorflow-gpu
+torch
+torchvision
+scikit-image==0.14.2
