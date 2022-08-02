@@ -114,6 +114,10 @@ def test_fitb(args):
         if im.shape[2] == 4:
             im = rgba2rgb(im)
         im = resize(im, (256, 256))
+        if not os.path.exists("result/"):
+            os.mkdir("result/")
+        if not os.path.exists(f"result/{type}/"):
+            os.mkdir(f"result/{type}/")
         skimage.io.imsave(f"result/{type}/{id}.png", im)
 
 
