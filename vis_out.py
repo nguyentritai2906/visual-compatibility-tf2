@@ -155,6 +155,7 @@ def test_fitb(args):
                 save_image(id, "choice")
             
             print(get_image_id(choices_ids[gt]))
+            print(get_image_id(choices_ids[predicted]))
 
             break
 
