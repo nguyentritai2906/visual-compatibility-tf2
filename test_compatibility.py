@@ -16,7 +16,7 @@ from collections import namedtuple
 from utils import get_degree_supports, sparse_to_tuple, normalize_nonsym_adj
 from utils import construct_feed_dict, Graph
 from model.CompatibilityGAE import CompatibilityGAE
-from dataloaders import DataLoaderPolyvore, DataLoaderFashionGen
+from dataloaders import DataLoaderPolyvore
 
 def compute_auc(preds, labels):
     return roc_auc_score(labels.astype(int), preds)
