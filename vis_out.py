@@ -13,11 +13,12 @@ from skimage.color import gray2rgb, rgba2rgb
 import skimage.io
 from collections import namedtuple
 import os
+from tqdm import tqdm 
 
 from utils import get_degree_supports, sparse_to_tuple, normalize_nonsym_adj
 from utils import construct_feed_dict
 from model.CompatibilityGAE import CompatibilityGAE
-from dataloaders import DataLoaderPolyvore, DataLoaderFashionGen
+from dataloaders import DataLoaderPolyvore
 
 def test_fitb(args):
     args = namedtuple("Args", args.keys())(*args.values())
@@ -103,7 +104,7 @@ def test_fitb(args):
 
         return id2their_test[K_1]
     
-    def save_image(id, type):
+    def save_image(id, idx, type):
         outfit_id, index = id.split('_') # outfitID_index
         images_path = 'data/polyvore/images/'
         image_path = images_path + outfit_id + '/' + '{}.jpg'.format(index)
@@ -116,9 +117,11 @@ def test_fitb(args):
         im = resize(im, (256, 256))
         if not os.path.exists("result/"):
             os.mkdir("result/")
-        if not os.path.exists(f"result/{type}/"):
-            os.mkdir(f"result/{type}/")
-        skimage.io.imsave(f"result/{type}/{id}.png", im)
+        if not os.path.exists(f"result/{idx}/"):
+            os.mkdir(f"result/{idx}/")
+        if not os.path.exists(f"result/{idx}/{type}/"):
+            os.mkdir(f"result/{idx}/{type}/")
+        skimage.io.imsave(f"result/{idx}/{type}/{id}.png", im)
 
 
     with tf.Session() as sess:
@@ -126,8 +129,8 @@ def test_fitb(args):
 
         kwargs = {'K': args.k, 'subset': args.subset,
                 'resampled': args.resampled, 'expand_outfit':args.expand_outfit}
-
-        for question_adj, out_ids, choices_ids, labels, valid in dl.yield_test_questions_K_edges(**kwargs):
+        idx = 0
+        for question_adj, out_ids, choices_ids in tqdm(dl.yield_test_questions_K_edges(**kwargs)):
             q_support = get_degree_supports(question_adj, config['degree'], adj_self_con=ADJ_SELF_CONNECTIONS, verbose=False)
             for i in range(1, len(q_support)):
                 q_support[i] = norm_adj(q_support[i])
@@ -136,28 +139,36 @@ def test_fitb(args):
             q_feed_dict = construct_feed_dict(placeholders, test_features, q_support,
                             q_labels, out_ids, choices_ids, 0., is_train=BN_AS_TRAIN)
 
-            # compute the output (correct or not) for the current FITB question
+            # compute the output (correct or not) for the current FITB questisave_imageon
             preds = sess.run(model.outputs, feed_dict=q_feed_dict)
             preds = sigmoid(preds)
-            outs = preds.reshape((-1, 4))
-            outs = outs.mean(axis=0) # pick the item with average largest probability, averaged accross all edges
+            # outs = preds.reshape((-1, 4))
+            # outs = preds.mean(axis=0) # pick the item with average largest probability, averaged accross all edges
+            
+            # gt = labels.reshape((-1, 4)).mean(axis=0)
+            # predicted = preds.argmax()
+            # print(predicted)
+            # gt = gt.argmax()
+            arr_predict = preds.argsort()[::-1]
 
-            gt = labels.reshape((-1, 4)).mean(axis=0)
-            predicted = outs.argmax()
-            gt = gt.argmax()
-
+            outid = []
             for v in np.unique(out_ids):
                 id = get_image_id(v)
-                save_image(id, "outfit")        
+                outid.append(id)
+                save_image(id, idx, "outfit")                
             
-            for v in  np.unique(choices_ids):
-                id = get_image_id(v)
-                save_image(id, "choice")
+            # for v in  np.unique(choices_ids):
+            #     id = get_image_id(v)
             
-            print(get_image_id(choices_ids[gt]))
-            print(get_image_id(choices_ids[predicted]))
-
-            break
+            for p in arr_predict:  
+                id_pred = get_image_id(choices_ids[p])                          
+                if id_pred not in outid:
+                    save_image(id_pred, idx, 'predict_full')
+                    idx += 1
+                    break 
+                else:
+                    continue                
+          
 
 if __name__ == "__main__":
     # TODO: remove unnecessary arguments
