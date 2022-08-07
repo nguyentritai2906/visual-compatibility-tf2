@@ -13,7 +13,7 @@ class DataLoaderPolyvore(Dataloader):
         super(DataLoaderPolyvore, self).__init__(path='data/polyvore/dataset/')
 
     def init_phase(self, phase):
-        print('init phase: {}'.format(phase))
+        # print('init phase: {}'.format(phase))
         assert phase in ['train', 'valid', 'test']
         path_dataset = self.path_dataset
         adj_file = path_dataset + 'adj_{}.npz'.format(phase)
@@ -36,7 +36,7 @@ class DataLoaderPolyvore(Dataloader):
             self.questions_resampled = json.load(f)
 
     def get_phase(self, phase):
-        print('get phase: {}'.format(phase))
+        # print('get phase: {}'.format(phase))
         assert phase in ['train', 'valid', 'test']
 
         lower_adj = getattr(self, 'lower_{}_adj'.format(phase))
@@ -58,7 +58,7 @@ class DataLoaderPolyvore(Dataloader):
 
         # get the negative edges
 
-        print('Sampling negative edges...')
+        # print('Sampling negative edges...')
         before = time.time()
         n_train_neg = eval_pos_labels.shape[0] # set the number of negative training edges that will be needed to sample at each iter
         neg_labels = np.zeros((n_train_neg))
@@ -72,7 +72,7 @@ class DataLoaderPolyvore(Dataloader):
             r_idx, c_idx = self.get_negative_training_edge(poss_nodes, poss_nodes.shape[0], lower_adj)
             neg_r_idx[i] = r_idx
             neg_c_idx[i] = c_idx
-        print('Sampling done, time elapsed: {}'.format(time.time() - before))
+        # print('Sampling done, time elapsed: {}'.format(time.time() - before))
 
         # build adj matrix
         adj = sp.csr_matrix((
@@ -178,24 +178,28 @@ class DataLoaderPolyvore(Dataloader):
         # self.questions is a list of questions with N elements and 4 possible choices (answers)
         questions = self.questions if not resampled else self.questions_resampled
         n_nodes = self.test_adj.shape[0]
+        full_choices = list(range(18169))
+
         for question in questions:
             outfit_ids = []
             choices_ids = []
-            gt = []
-            valid = []
+            # gt = []
+            # valid = []
             # keep only a subset of the outfit
             if subset:
                 outfit_subset = np.random.choice(question[0], 3, replace=False)
             else:
                 outfit_subset = question[0]
-            for index in outfit_subset: # indexes of outfit nodes
+            for index in outfit_subset: # indexes of outfit nodes                
+                # full_choices.remove(index)
+                # print([i in full_choices for i in outfit_subset])
                 i = 0
-                for index_answer in question[1]: # indexes of possible choices answers
+                for index_answer in full_choices: # indexes of possible choices answers
                     outfit_ids.append(index)
                     choices_ids.append(index_answer)
-                    gt.append(int(i==0))# the correct connection is the first
+                    # gt.append(int(i==0))# the correct connection is the first
                     # a link is valid if the candidate item is from the same category as the missing item
-                    valid.append(int(question[2][i] == question[3]))
+                    # valid.append(int(question[2][i] == question[3]))
                     i += 1
 
             # question adj with only the outfit edges
@@ -245,8 +249,8 @@ class DataLoaderPolyvore(Dataloader):
                         extra_edges.append(edge)
 
             question_adj = question_adj.tocsr()
-
-            yield question_adj, np.array(outfit_ids), np.array(choices_ids), np.array(gt), np.array(valid)
+            yield question_adj, np.array(outfit_ids), np.array(choices_ids)
+            # yield question_adj, np.array(outfit_ids), np.array(choices_ids), np.array(gt), np.array(valid)
 
     def get_test_compatibility(self):
         """
