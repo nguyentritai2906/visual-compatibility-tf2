@@ -4,7 +4,7 @@ import time
 import scipy.sparse as sp
 from scipy.sparse import csr_matrix
 
-def construct_feed_dict(placeholders, node_features, support, labels, r_indices, c_indices,
+def construct_feed_dict(placeholders, node_features, support, r_indices, c_indices,
                         dropout, is_train=True):
     """
     Create feed dictionary.
@@ -17,7 +17,7 @@ def construct_feed_dict(placeholders, node_features, support, labels, r_indices,
     feed_dict.update({placeholders['node_features']: node_features})
     feed_dict.update({placeholders['support'][i]: support[i] for i in range(len(support))})
 
-    feed_dict.update({placeholders['labels']: labels})
+    # feed_dict.update({placeholders['labels']: labels})
     feed_dict.update({placeholders['row_indices']: r_indices})
     feed_dict.update({placeholders['col_indices']: c_indices})
 
