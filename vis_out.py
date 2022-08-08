@@ -46,26 +46,26 @@ def test_fitb(args):
         return normalize_nonsym_adj(adj_to_norm)
 
     dl = DataLoaderPolyvore()
-    train_features, adj_train, train_labels, train_r_indices, train_c_indices = dl.get_phase('train')
-    val_features, adj_val, val_labels, val_r_indices, val_c_indices = dl.get_phase('valid')
+    # train_features, adj_train, train_labels, train_r_indices, train_c_indices = dl.get_phase('train')
+    # val_features, adj_val, val_labels, val_r_indices, val_c_indices = dl.get_phase('valid')
     test_features, adj_test, test_labels, test_r_indices, test_c_indices = dl.get_phase('test')
-    adj_q, q_r_indices, q_c_indices, q_labels, q_ids, q_valid = dl.get_test_questions()
-    train_features, mean, std = dl.normalize_features(train_features, get_moments=True)
-    val_features = dl.normalize_features(val_features, mean=mean, std=std)
-    test_features = dl.normalize_features(test_features, mean=mean, std=std)
+    # adj_q, q_r_indices, q_c_indices, q_labels, q_ids, q_valid = dl.get_test_questions()
+    # train_features, mean, std = dl.normalize_features(train_features, get_moments=True)
+    # val_features = dl.normalize_features(val_features, mean=mean, std=std)
+    test_features, mean, std = dl.normalize_features(test_features, get_moments=True)
 
-    train_support = get_degree_supports(adj_train, config['degree'], adj_self_con=ADJ_SELF_CONNECTIONS)
-    val_support = get_degree_supports(adj_val, config['degree'], adj_self_con=ADJ_SELF_CONNECTIONS)
+    # train_support = get_degree_supports(adj_train, config['degree'], adj_self_con=ADJ_SELF_CONNECTIONS)
+    # val_support = get_degree_supports(adj_val, config['degree'], adj_self_con=ADJ_SELF_CONNECTIONS)
     test_support = get_degree_supports(adj_test, config['degree'], adj_self_con=ADJ_SELF_CONNECTIONS)
-    q_support = get_degree_supports(adj_q, config['degree'], adj_self_con=ADJ_SELF_CONNECTIONS)
+    # q_support = get_degree_supports(adj_q, config['degree'], adj_self_con=ADJ_SELF_CONNECTIONS)
 
-    for i in range(1, len(train_support)):
-        train_support[i] = norm_adj(train_support[i])
-        val_support[i] = norm_adj(val_support[i])
-        test_support[i] = norm_adj(test_support[i])
-        q_support[i] = norm_adj(q_support[i])
+    # for i in range(1, len(train_support)):
+    #     train_support[i] = norm_adj(train_support[i])
+    #     val_support[i] = norm_adj(val_support[i])
+    #     test_support[i] = norm_adj(test_support[i])
+    #     q_support[i] = norm_adj(q_support[i])
 
-    num_support = len(train_support)
+    num_support = len(test_support)
     placeholders = {
         'row_indices': tf.placeholder(tf.int32, shape=(None,)),
         'col_indices': tf.placeholder(tf.int32, shape=(None,)),
@@ -78,7 +78,7 @@ def test_fitb(args):
     }
 
     model = CompatibilityGAE(placeholders,
-                    input_dim=train_features.shape[1],
+                    input_dim=test_features.shape[1],
                     num_classes=NUMCLASSES,
                     num_support=num_support,
                     hidden=config['hidden'],
@@ -86,10 +86,10 @@ def test_fitb(args):
                     logging=True,
                     batch_norm=config['batch_norm'])
 
-    test_feed_dict = construct_feed_dict(placeholders, test_features, test_support,
-                        test_labels, test_r_indices, test_c_indices, 0., is_train=BN_AS_TRAIN)
-    q_feed_dict = construct_feed_dict(placeholders, test_features, q_support,
-                        q_labels, q_r_indices, q_c_indices, 0., is_train=BN_AS_TRAIN)
+    # test_feed_dict = construct_feed_dict(placeholders, test_features, test_support,
+    #                     test_labels, test_r_indices, test_c_indices, 0., is_train=BN_AS_TRAIN)
+    # q_feed_dict = construct_feed_dict(placeholders, test_features, q_support,
+    #                     q_labels, q_r_indices, q_c_indices, 0., is_train=BN_AS_TRAIN)
 
     # Add ops to save and restore all the variables.
     saver = tf.train.Saver()
@@ -104,7 +104,7 @@ def test_fitb(args):
 
         return id2their_test[K_1]
     
-    def save_image(id, idx, type):
+    def save_image(id, type):
         outfit_id, index = id.split('_') # outfitID_index
         images_path = 'data/polyvore/images/'
         image_path = images_path + outfit_id + '/' + '{}.jpg'.format(index)
@@ -116,63 +116,70 @@ def test_fitb(args):
             im = rgba2rgb(im)
         im = resize(im, (256, 256))
         if not os.path.exists("result/"):
-            os.mkdir("result/")
-        if not os.path.exists(f"result/{idx}/"):
-            os.mkdir(f"result/{idx}/")
-        if not os.path.exists(f"result/{idx}/{type}/"):
-            os.mkdir(f"result/{idx}/{type}/")
-        skimage.io.imsave(f"result/{idx}/{type}/{id}.png", im)
+            os.mkdir("result/")        
+        if not os.path.exists(f"result/{type}/"):
+            os.mkdir(f"result/{type}/")
+        skimage.io.imsave(f"result/{type}/{id}.png", im)
 
 
     with tf.Session() as sess:
         saver.restore(sess, load_from+'/'+'best_epoch.ckpt')
+        question = []
+        for ques in args.q: 
+            for key, value in id2their_test.items():
+                if value == ques: 
+                    id_ques = id2idx_test[key]
+                    question.append(id_ques)
 
-        kwargs = {'K': args.k, 'subset': args.subset,
+
+        kwargs = {'question': question, 'K': args.k, 'subset': args.subset,
                 'resampled': args.resampled, 'expand_outfit':args.expand_outfit}
-        idx = 0
-        for question_adj, out_ids, choices_ids in tqdm(dl.yield_test_questions_K_edges(**kwargs)):
-            q_support = get_degree_supports(question_adj, config['degree'], adj_self_con=ADJ_SELF_CONNECTIONS, verbose=False)
-            for i in range(1, len(q_support)):
-                q_support[i] = norm_adj(q_support[i])
-            q_support = [sparse_to_tuple(sup) for sup in q_support]
+        
+        # for question_adj, out_ids, choices_ids in tqdm(dl.yield_test_questions_K_edges(**kwargs)):
+        question_adj, out_ids, choices_ids = dl.yield_test_questions_K_edges(**kwargs)
+        q_support = get_degree_supports(question_adj, config['degree'], adj_self_con=ADJ_SELF_CONNECTIONS, verbose=False)
+        for i in range(1, len(q_support)):
+            q_support[i] = norm_adj(q_support[i])
+        q_support = [sparse_to_tuple(sup) for sup in q_support]
+        q_feed_dict = construct_feed_dict(placeholders, test_features, q_support,
+                        out_ids, choices_ids, 0., is_train=BN_AS_TRAIN)
 
-            q_feed_dict = construct_feed_dict(placeholders, test_features, q_support,
-                            q_labels, out_ids, choices_ids, 0., is_train=BN_AS_TRAIN)
+        # compute the output (correct or not) for the current FITB questisave_imageon
+        preds = sess.run(model.outputs, feed_dict=q_feed_dict)
+        preds = sigmoid(preds)
+        # outs = preds.reshape((-1, 4))
+        # outs = preds.mean(axis=0) # pick the item with average largest probability, averaged accross all edges
+        
+        # gt = labels.reshape((-1, 4)).mean(axis=0)
+        # predicted = preds.argmax()
+        # print(predicted)
+        # gt = gt.argmax()
+        arr_predict = preds.argsort()[::-1]
 
-            # compute the output (correct or not) for the current FITB questisave_imageon
-            preds = sess.run(model.outputs, feed_dict=q_feed_dict)
-            preds = sigmoid(preds)
-            # outs = preds.reshape((-1, 4))
-            # outs = preds.mean(axis=0) # pick the item with average largest probability, averaged accross all edges
-            
-            # gt = labels.reshape((-1, 4)).mean(axis=0)
-            # predicted = preds.argmax()
-            # print(predicted)
-            # gt = gt.argmax()
-            arr_predict = preds.argsort()[::-1]
-
-            outid = []
-            for v in np.unique(out_ids):
-                id = get_image_id(v)
-                outid.append(id)
-                save_image(id, idx, "outfit")                
-            
-            # for v in  np.unique(choices_ids):
-            #     id = get_image_id(v)
-            
-            for p in arr_predict:  
-                id_pred = get_image_id(choices_ids[p])                          
-                if id_pred not in outid:
-                    save_image(id_pred, idx, 'predict_full')
-                    idx += 1
-                    break 
-                else:
-                    continue                
+        outid = []
+        for v in np.unique(out_ids):
+            id = get_image_id(v)
+            outid.append(id)
+            save_image(id, "outfit")                
+        
+        # for v in  np.unique(choices_ids):
+        #     id = get_image_id(v)
+        
+        for p in arr_predict:  
+            id_pred = get_image_id(choices_ids[p])                          
+            if id_pred not in outid:
+                save_image(id_pred, 'predict_full')
+                print(id_pred)
+                break 
+            else:
+                continue
+         
           
 
 if __name__ == "__main__":
     # TODO: remove unnecessary arguments
     parser = argparse.ArgumentParser()
+    parser.add_argument("-q", type=str, action='append', help="question")
     parser.add_argument("-k", type=int, default=1,
                     help="K used for the variable number of edges case")
     parser.add_argument('-eo', '--expand_outfit', dest='expand_outfit', action='store_true',
