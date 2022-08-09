@@ -104,7 +104,7 @@ def test_fitb(args):
 
         return id2their_test[K_1]
     
-    def save_image(id, type):
+    def save_image(id, idx, type):
         outfit_id, index = id.split('_') # outfitID_index
         images_path = 'data/polyvore/images/'
         image_path = images_path + outfit_id + '/' + '{}.jpg'.format(index)
@@ -114,12 +114,17 @@ def test_fitb(args):
             im = gray2rgb(im)
         if im.shape[2] == 4:
             im = rgba2rgb(im)
-        im = resize(im, (256, 256))
+        im = resize(im, (256, 256))        
         if not os.path.exists("result/"):
-            os.mkdir("result/")        
+            os.mkdir("result/")                
         if not os.path.exists(f"result/{type}/"):
             os.mkdir(f"result/{type}/")
-        skimage.io.imsave(f"result/{type}/{id}.png", im)
+        if idx is None:
+          skimage.io.imsave(f"result/{type}/{id}.png", im)
+        else:
+          if not os.path.exists(f"result/{type}/{idx}/"):
+              os.mkdir(f"result/{type}/{idx}/")
+          skimage.io.imsave(f"result/{type}/{idx}/{id}.png", im)
 
 
     with tf.Session() as sess:
@@ -160,17 +165,19 @@ def test_fitb(args):
         for v in np.unique(out_ids):
             id = get_image_id(v)
             outid.append(id)
-            save_image(id, "outfit")                
+            save_image(id, None, "outfit")                
         
         # for v in  np.unique(choices_ids):
         #     id = get_image_id(v)
-        
+        rate = 0 
         for p in arr_predict:  
             id_pred = get_image_id(choices_ids[p])                          
             if id_pred not in outid:
-                save_image(id_pred, 'predict_full')
+                save_image(id_pred, rate, 'predict_full')
                 print(id_pred)
-                break 
+                rate += 1
+                if rate == args.n:
+                  break 
             else:
                 continue
          
@@ -180,6 +187,7 @@ if __name__ == "__main__":
     # TODO: remove unnecessary arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("-q", type=str, action='append', help="question")
+    parser.add_argument("-n", type=int, default=1, help="n answers")
     parser.add_argument("-k", type=int, default=1,
                     help="K used for the variable number of edges case")
     parser.add_argument('-eo', '--expand_outfit', dest='expand_outfit', action='store_true',
