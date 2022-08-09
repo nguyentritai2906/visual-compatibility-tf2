@@ -25,10 +25,11 @@ data
 
 ## Run demo 
 ```commandline
-python vis_out.py -q "119314458_1" -q "119314458_2" -q "119314458_3" -q "119314458_4" -lf ./ckpt -k 15
+python vis_out.py -q "119314458_1" -q "119314458_2" -q "119314458_3" -q "119314458_4" -n 5 -lf /content/visual-compatibility-tf2/ckpt -k 15
 ```
 ### Parameters:
 * `-q`: setid_index of the question (setid is the folder name contain the image, index is the name of the image on **the images folder**)
+* `-n`: the number of answers you want to see 
 * `-lf`: directory of the **checkpoint folder**
 * `-k`: the number of neighbourhoods
 
