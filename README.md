@@ -9,19 +9,19 @@
 * [images](https://drive.google.com/file/d/1XQ9QuZDPM-Z-jDQpcU9uuUJ9xPBlk01H/view?usp=sharing) 
 * [dataset](https://drive.google.com/file/d/1l7XycWYVhOObq4LY4LVV9cDxC_gxxe_g/view?usp=sharing)
 
-**NOTE: After the download process is completed, you should extract all of them and put them like the directory tree in below:**
+**NOTE: After the download process is completed, you need to extract all of them and put them like the directory tree in below:**
 
 ```commandline
 data
 └── polyvore
     ├── utils
-    ├── **dataset**    
-    └── **images**   
+    ├── dataset    
+    └── images
 ```
 ### Download the checkpoint 
 * [checkpoint](https://drive.google.com/file/d/1kU6lCRzo4ugGH4wyL-I89lW9e2JAbKPq/view?usp=sharing)
 
-**NOTE: After the download process is completed, you should extract them.**
+**NOTE: After the download process is completed, you need to extract them.**
 
 ## Run demo 
 ```commandline
