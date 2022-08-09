@@ -170,12 +170,17 @@ def test_fitb(args):
         # for v in  np.unique(choices_ids):
         #     id = get_image_id(v)
         rate = 0 
+        answers = []
         for p in arr_predict:  
             id_pred = get_image_id(choices_ids[p])                          
             if id_pred not in outid:
-                save_image(id_pred, rate, 'predict_full')
-                print(id_pred)
-                rate += 1
+                if id_pred not in answers:             
+                  save_image(id_pred, rate, 'predict_full')
+                  print(id_pred)
+                  rate += 1
+                  answers.append(id_pred)   
+                else: 
+                  continue                                
                 if rate == args.n:
                   break 
             else:
